@@ -65,38 +65,28 @@ impl FocusingPower for Boxes {
 fn solution_2(input: String) -> usize {
     let operations = input
         .split(',')
-        .map(|sequence| Operation::from(sequence))
+        .map(Operation::from)
         .collect::<Vec<Operation>>();
+
     let mut boxes: Boxes = HashMap::new();
+
     for operation in operations {
         match operation {
             Operation::EQUAL(label, focal_length) => {
-                let custom_hash = label.custom_hash();
-                match boxes.get_mut(&custom_hash) {
-                    Some(lenses) => {
-                        let index = lenses.iter().position(|l| l.0.eq(&label));
-                        match index {
-                            Some(index) => lenses.get_mut(index).unwrap().1 = focal_length,
-                            None => lenses.push((label, focal_length)),
-                        }
-                    }
-                    None => {
-                        let mut lenses: Lenses = Vec::new();
-                        lenses.push((label, focal_length));
-                        boxes.insert(custom_hash, lenses);
-                    }
+                let lenses = boxes.entry(label.custom_hash()).or_insert_with(Vec::new);
+                match lenses.iter_mut().find(|lens| lens.0 == label) {
+                    Some(lens) => lens.1 = focal_length,
+                    None => lenses.push((label, focal_length)),
                 }
             }
-            Operation::DASH(label) => match boxes.get_mut(&label.custom_hash()) {
-                Some(lenses) => {
-                    if let Some(index) = lenses.iter().position(|l| l.0.eq(&label)) {
-                        lenses.remove(index);
-                    }
+            Operation::DASH(label) => {
+                if let Some(lenses) = boxes.get_mut(&label.custom_hash()) {
+                    lenses.retain(|lens| lens.0 != label);
                 }
-                None => (),
-            },
+            }
         }
     }
+
     boxes.focusing_power()
 }
 
