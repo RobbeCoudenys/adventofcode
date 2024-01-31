@@ -1,9 +1,7 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashMap,
     ops::{AddAssign, SubAssign},
 };
-
-use itertools::Itertools;
 
 #[derive(PartialEq)]
 enum Space {
@@ -81,7 +79,8 @@ struct Coordinate {
 }
 
 struct PlatformSol2 {
-    cubes_and_balls: Vec<Coordinate>,
+    cube_coords: Vec<(usize, usize)>,
+    ball_coords: Vec<(usize, usize)>,
     max_x: usize,
     max_y: usize,
 }
@@ -90,25 +89,21 @@ impl From<Platform> for PlatformSol2 {
     fn from<'a>(value: Platform) -> Self {
         let max_x = value.items.get(0).unwrap().len() - 1;
         let max_y = value.items.len() - 1;
-        let cubes_and_balls = value
-            .items
-            .into_iter()
-            .enumerate()
-            .flat_map(|(y, spaces)| {
-                spaces
-                    .into_iter()
-                    .enumerate()
-                    .map(move |(x, space)| Coordinate { x, y, value: space })
-            })
-            .filter(|coord| match coord.value {
-                Space::Space => false,
-                Space::Cube => true,
-                Space::Ball => true,
-            })
-            .collect::<Vec<Coordinate>>();
-        // cubes_and_balls.sort_by(|a, b| a.x.cmp(&b.x).then(a.y.cmp(&b.y)));
+        let mut cube_coords = Vec::new();
+        let mut ball_coords = Vec::new();
+        for (y, row) in value.items.iter().enumerate() {
+            for (x, value) in row.iter().enumerate() {
+                match value {
+                    Space::Space => (),
+                    Space::Cube => cube_coords.push((x, y)),
+                    Space::Ball => ball_coords.push((x, y)),
+                }
+            }
+        }
+
         Self {
-            cubes_and_balls,
+            cube_coords,
+            ball_coords,
             max_x,
             max_y,
         }
@@ -116,191 +111,179 @@ impl From<Platform> for PlatformSol2 {
 }
 
 impl PlatformSol2 {
+    fn balls_and_cubes_chain(
+        &self,
+    ) -> std::iter::Chain<std::slice::Iter<'_, (usize, usize)>, std::slice::Iter<'_, (usize, usize)>>
+    {
+        self.ball_coords.iter().chain(self.cube_coords.iter())
+    }
     fn north(&mut self) {
-        self.cubes_and_balls.sort_by(|a, b| a.y.cmp(&b.y));
-        for index in 0..self.cubes_and_balls.iter().count() {
-            let space = self.cubes_and_balls.get(index).unwrap();
-            match space.value {
-                Space::Space => (),
-                Space::Cube => (),
-                Space::Ball => {
-                    let relevant_space_y = self
-                        .cubes_and_balls
-                        .iter()
-                        .filter(|c| c.x == space.x && c.y < space.y)
-                        .max_by_key(|c| c.y)
-                        .map(|c| c.y);
+        self.ball_coords.sort_by(|a, b| a.1.cmp(&b.1));
+        for index in 0..self.ball_coords.iter().count() {
+            let space = self.ball_coords.get(index).unwrap();
 
-                    let space = self.cubes_and_balls.get_mut(index).unwrap();
+            let relevant_space_y = self
+                .balls_and_cubes_chain()
+                .filter(|c| c.0 == space.0 && c.1 < space.1)
+                .max_by_key(|c| c.1)
+                .map(|c| c.1);
 
-                    if let Some(space_above) = relevant_space_y {
-                        space.y = space_above + 1;
-                    } else {
-                        space.y = 0;
-                    }
-                }
+            let space = self.ball_coords.get_mut(index).unwrap();
+
+            if let Some(space_above) = relevant_space_y {
+                space.1 = space_above + 1;
+            } else {
+                space.1 = 0;
             }
         }
     }
     fn west(&mut self) {
-        self.cubes_and_balls.sort_by(|a, b| a.x.cmp(&b.x));
-        for index in 0..self.cubes_and_balls.iter().count() {
-            let space = self.cubes_and_balls.get(index).unwrap();
-            match space.value {
-                Space::Space => (),
-                Space::Cube => (),
-                Space::Ball => {
-                    let relevant_space_x = self
-                        .cubes_and_balls
-                        .iter()
-                        .filter(|c| c.y == space.y && c.x < space.x)
-                        .max_by_key(|c| c.x)
-                        .map(|c| c.x);
+        self.ball_coords.sort_by(|a, b| a.0.cmp(&b.0));
+        for index in 0..self.ball_coords.iter().count() {
+            let space = self.ball_coords.get(index).unwrap();
 
-                    let space = self.cubes_and_balls.get_mut(index).unwrap();
+            let relevant_space_x = self
+                .balls_and_cubes_chain()
+                .filter(|c| c.1 == space.1 && c.0 < space.0)
+                .max_by_key(|c| c.0)
+                .map(|c| c.0);
 
-                    if let Some(space_left) = relevant_space_x {
-                        space.x = space_left + 1;
-                    } else {
-                        space.x = 0;
-                    }
-                }
+            let space = self.ball_coords.get_mut(index).unwrap();
+
+            if let Some(space_left) = relevant_space_x {
+                space.0 = space_left + 1;
+            } else {
+                space.0 = 0;
             }
         }
     }
     fn south(&mut self) {
-        self.cubes_and_balls.sort_by(|a, b| a.y.cmp(&b.y).reverse());
-        for index in 0..self.cubes_and_balls.iter().count() {
-            let space = self.cubes_and_balls.get(index).unwrap();
-            match space.value {
-                Space::Space => (),
-                Space::Cube => (),
-                Space::Ball => {
-                    let relevant_space_y = self
-                        .cubes_and_balls
-                        .iter()
-                        .filter(|c| c.x == space.x && c.y > space.y)
-                        .min_by_key(|c| c.y)
-                        .map(|c| c.y);
+        self.ball_coords.sort_by(|a, b| a.1.cmp(&b.1).reverse());
+        for index in 0..self.ball_coords.iter().count() {
+            let space = self.ball_coords.get(index).unwrap();
 
-                    let space = self.cubes_and_balls.get_mut(index).unwrap();
+            let relevant_space_y = self
+                .balls_and_cubes_chain()
+                .filter(|c| c.0 == space.0 && c.1 > space.1)
+                .min_by_key(|c| c.1)
+                .map(|c| c.1);
 
-                    if let Some(space_below) = relevant_space_y {
-                        space.y = space_below - 1;
-                    } else {
-                        space.y = self.max_y;
-                    }
-                }
+            let space = self.ball_coords.get_mut(index).unwrap();
+
+            if let Some(space_below) = relevant_space_y {
+                space.1 = space_below - 1;
+            } else {
+                space.1 = self.max_y;
             }
         }
     }
     fn east(&mut self) {
-        self.cubes_and_balls.sort_by(|a, b| a.x.cmp(&b.x).reverse());
-        for index in 0..self.cubes_and_balls.iter().count() {
-            let space = self.cubes_and_balls.get(index).unwrap();
-            match space.value {
-                Space::Space => (),
-                Space::Cube => (),
-                Space::Ball => {
-                    let relevant_space_x = self
-                        .cubes_and_balls
-                        .iter()
-                        .filter(|c| c.y == space.y && c.x > space.x)
-                        .min_by_key(|c| c.x)
-                        .map(|c| c.x);
+        self.ball_coords.sort_by(|a, b| a.0.cmp(&b.0).reverse());
+        for index in 0..self.ball_coords.iter().count() {
+            let space = self.ball_coords.get(index).unwrap();
 
-                    let space = self.cubes_and_balls.get_mut(index).unwrap();
+            let relevant_space_x = self
+                .balls_and_cubes_chain()
+                .filter(|c| c.1 == space.1 && c.0 > space.0)
+                .min_by_key(|c| c.0)
+                .map(|c| c.0);
 
-                    if let Some(space_right) = relevant_space_x {
-                        space.x = space_right - 1;
-                    } else {
-                        space.x = self.max_x;
-                    }
-                }
+            let space = self.ball_coords.get_mut(index).unwrap();
+
+            if let Some(space_right) = relevant_space_x {
+                space.0 = space_right - 1;
+            } else {
+                space.0 = self.max_x;
             }
         }
     }
 
-    fn get_simple_representation(&mut self) -> Vec<(usize, usize)> {
-        self.cubes_and_balls
-            .sort_by(|a, b| a.x.cmp(&b.x).then(a.y.cmp(&b.y)));
-        self.cubes_and_balls
-            .iter()
-            .map(|c| (c.x, c.y))
-            .collect::<Vec<(usize, usize)>>()
-    }
-
     fn cycle(&mut self) {
         let mut cycle_map: HashMap<Vec<(usize, usize)>, Vec<(usize, usize)>> = HashMap::new();
+        let total_cycles = 1_000_000_000;
 
-        let mut current = self.get_simple_representation();
-        for _ in 0..1000000000 {
-            let mut current = self.get_simple_representation();
-            if let Some(test) = cycle_map.get(&current) {
-                self.set_balls(test);
-                continue;
+        let mut loop_size = 0;
+        let mut cycle_count = 0;
+        while cycle_count < total_cycles {
+            // self.print();
+            let cycle_start = &self.ball_coords;
+            if loop_size == 0 {
+                if let Some(next) = cycle_map.get(cycle_start) {
+                    loop_size.add_assign(1);
+                    println!(
+                        "starting score: {}",
+                        self.weigth_to_north_provide_list(&cycle_start)
+                    );
+                    // detect loop
+                    let mut current = next;
+                    while let Some(next) = cycle_map.get(current) {
+                        loop_size.add_assign(1);
+                        if next.eq(cycle_start) {
+                            break;
+                        }
+                        current = next;
+                    }
+                    println!("Starting cycle count: {}", cycle_count);
+                    println!("Loop size: {}", loop_size);
+                    let remaining_cycles = (total_cycles - cycle_count) % loop_size;
+                    println!("Remaining cycles: {}", remaining_cycles);
+                    cycle_count = total_cycles - remaining_cycles;
+                    println!("New cycle count: {}", cycle_count);
+                    continue;
+                }
             }
+            let previous = self.ball_coords.to_vec();
             self.north();
             self.west();
             self.south();
             self.east();
 
-            let new = self.get_simple_representation();
-            cycle_map.insert(current, new);
-
-            // self.print();
+            cycle_map.insert(previous, self.ball_coords.to_vec());
+            cycle_count.add_assign(1);
         }
+    }
+
+    fn weigth_to_north_provide_list(&self, list: &Vec<(usize, usize)>) -> usize {
+        let top_beam_weight = self.max_y + 1;
+        list.iter().map(|b| top_beam_weight - b.1).sum()
     }
 
     fn weigth_to_north(&self) -> usize {
-        let top_beam_weight = self.max_y + 1;
-        let mut result = 0;
-        for space in self.cubes_and_balls.iter() {
-            match space.value {
-                Space::Ball => {
-                    result.add_assign(top_beam_weight - space.y);
-                }
-                _ => (),
-            }
-        }
-        result
+        self.weigth_to_north_provide_list(&self.ball_coords)
     }
 
     fn print(&mut self) {
-        print!("\n\n\n");
-        self.cubes_and_balls
-            .sort_by(|a, b| a.y.cmp(&b.y).then(a.x.cmp(&b.x)));
+        print!("\n\n");
+        let mut balls_and_cubes = self
+            .balls_and_cubes_chain()
+            .map(|c| (c.0, c.1))
+            .collect::<Vec<(usize, usize)>>();
+        balls_and_cubes.sort_by(|a, b| a.1.cmp(&b.1).then(a.0.cmp(&b.0)));
         for y in 0..self.max_y + 1 {
             for x in 0..self.max_x + 1 {
-                let matching_coord = self
-                    .cubes_and_balls
+                let matching_coord = balls_and_cubes
                     .iter()
-                    .filter(|c| c.x.eq(&x) && c.y.eq(&y))
+                    .filter(|c| c.0.eq(&x) && c.1.eq(&y))
                     .next();
                 match matching_coord {
-                    Some(coord) => match coord.value {
-                        Space::Space => print!("."),
-                        Space::Cube => print!("#"),
-                        Space::Ball => print!("O"),
-                    },
+                    Some(coord) => {
+                        if self.ball_coords.contains(coord) {
+                            print!("0");
+                        } else {
+                            print!("#");
+                        }
+                    }
                     None => print!("."),
                 }
             }
             print!("\n");
         }
+
+        print!("Total value: {}\n", self.weigth_to_north());
     }
 
     fn set_balls(&mut self, test: &Vec<(usize, usize)>) {
-        for (index, coord) in self
-            .cubes_and_balls
-            .iter_mut()
-            .filter(|c| c.value.eq(&Space::Ball))
-            .enumerate()
-        {
-            let new_coord = test.get(index).unwrap();
-            coord.x = new_coord.0;
-            coord.y = new_coord.1;
-        }
+        self.ball_coords = test.to_vec();
     }
 }
 
@@ -351,5 +334,11 @@ mod tests {
     fn example_2_test() {
         let input = get_input(file!(), "example1.txt");
         assert_eq!(64, solution_2(input));
+    }
+
+    #[test]
+    fn solution_2_test() {
+        let input = get_input(file!(), "input1.txt");
+        assert_eq!(104671, solution_2(input));
     }
 }
