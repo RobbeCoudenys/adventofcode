@@ -72,12 +72,6 @@ fn solution_1(input: String) -> usize {
     platform.weigth_to_north()
 }
 
-struct Coordinate {
-    x: usize,
-    y: usize,
-    value: Space,
-}
-
 struct PlatformSol2 {
     cube_coords: Vec<(usize, usize)>,
     ball_coords: Vec<(usize, usize)>,
