@@ -1,6 +1,5 @@
 use std::{
     collections::HashMap,
-    hash::Hash,
     ops::{AddAssign, MulAssign},
 };
 
@@ -52,13 +51,14 @@ trait FocusingPower {
 
 impl FocusingPower for Boxes {
     fn focusing_power(&self) -> usize {
-        let mut result = 0;
-        for (box_nr, lenses) in self.iter() {
-            for (index, lens) in lenses.iter().enumerate() {
-                result.add_assign((box_nr + 1) * (index + 1) * lens.1);
-            }
-        }
-        result
+        self.iter()
+            .flat_map(|(box_nr, lenses)| {
+                lenses
+                    .iter()
+                    .enumerate()
+                    .map(move |(index, lens)| (box_nr + 1) * (index + 1) * lens.1)
+            })
+            .sum()
     }
 }
 
@@ -103,7 +103,7 @@ fn solution_2(input: String) -> usize {
 #[cfg(test)]
 mod tests {
 
-    use crate::shared::file_parser::get_input;
+    use crate::shared::{file_parser::get_input, method_duration::log_method_duration};
 
     use super::*;
 
@@ -146,6 +146,6 @@ mod tests {
     #[test]
     fn solution_2_test() {
         let input = get_input(file!(), "input1.txt");
-        assert_eq!(247763, solution_2(input));
+        assert_eq!(247763, log_method_duration(|| solution_2(input)));
     }
 }
