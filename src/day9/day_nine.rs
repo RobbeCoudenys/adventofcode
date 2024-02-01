@@ -84,7 +84,7 @@ mod tests {
                     .collect::<Vec<isize>>()
             })
             .collect::<Vec<Vec<isize>>>();
-        assert_eq!(114, solution_1(test));
+        assert_eq!(2098530125, solution_1(test));
     }
 
     #[test]
@@ -114,6 +114,6 @@ mod tests {
                     .collect::<Vec<isize>>()
             })
             .collect::<Vec<Vec<isize>>>();
-        assert_eq!(2, solution_2(test));
+        assert_eq!(1016, solution_2(test));
     }
 }

@@ -244,7 +244,7 @@ mod tests {
         let input = get_input(file!(), "input1.txt");
 
         let game = Game::from(input);
-        assert_eq!(6, solution_1(game, ['A', 'A', 'A'], ['Z', 'Z', 'Z']));
+        assert_eq!(19667, solution_1(game, ['A', 'A', 'A'], ['Z', 'Z', 'Z']));
     }
 
     #[test]

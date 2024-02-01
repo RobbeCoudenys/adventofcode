@@ -1,4 +1,4 @@
-use std::{collections::HashSet, path::Iter};
+use std::collections::HashSet;
 
 #[derive(Debug, Eq, PartialEq, PartialOrd, Ord)]
 enum HandValue {
@@ -307,6 +307,6 @@ mod tests {
             .into_iter()
             .map(|row| Play::from_2(row.as_str()))
             .collect();
-        assert_eq!(5905, solution_2(plays));
+        assert_eq!(253907829, solution_2(plays));
     }
 }
