@@ -86,8 +86,8 @@ fn extract_total(input: Vec<String>, convert_spelled_numbers: bool) -> i32 {
 
 #[cfg(test)]
 mod tests {
-    use crate::day1::day_one::{extract_number, extract_total};
     use crate::shared::file_parser::{get_input, get_rows};
+    use crate::_2023::day1::day_one::{extract_number, extract_total};
 
     use super::replace_spelled_numbers;
 
