@@ -1,4 +1,5 @@
 mod _2023;
+mod _2024;
 // mod day18;
 // mod day19;
 // mod day20;
