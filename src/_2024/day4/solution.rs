@@ -19,8 +19,8 @@ fn parse_input(input: String) -> Grid {
 fn count_xmas_part1(input: &Grid) -> u32 {
     let mut count = 0;
     input.iter().for_each(|(x_y, c)| {
-        if c == &'X' && is_part_of_xmas(input, x_y) {
-            count += 1;
+        if c == &'X' {
+            count += nr_of_xmasses_from_x_position(input, x_y);
         }
     });
     count
@@ -34,10 +34,10 @@ fn nr_of_xmasses_from_x_position(grid: &Grid, x_position: &Coords) -> u32 {
         Direction::Horizontal(false),
         Direction::Vertical(true),
         Direction::Vertical(false),
-        Direction::Diagonal_UP(true),
-        Direction::Diagonal_UP(false),
-        Direction::Diagonal_DOWN(true),
-        Direction::Diagonal_DOWN(false),
+        Direction::DiagonalUp(true),
+        Direction::DiagonalUp(false),
+        Direction::DiagonalDown(true),
+        Direction::DiagonalDown(false),
     ];
     for direction in directions {
         if is_xmas_in_direction(grid, x_position, &direction) {
@@ -50,53 +50,25 @@ fn nr_of_xmasses_from_x_position(grid: &Grid, x_position: &Coords) -> u32 {
 enum Direction {
     Horizontal(bool),
     Vertical(bool),
-    Diagonal_UP(bool),
-    Diagonal_DOWN(bool),
+    DiagonalUp(bool),
+    DiagonalDown(bool),
+}
+
+fn next_position(curr_position: &Coords, x_fn: fn(i32) -> i32, y_fn: fn(i32) -> i32) -> Coords {
+    (x_fn(curr_position.0), y_fn(curr_position.1))
 }
 
 impl Direction {
     fn calculate_next_position(&self, curr_position: Coords) -> Coords {
         match self {
-            Direction::Horizontal(true) => {
-                let next_x = curr_position.0 + 1;
-                let next_y = curr_position.1;
-                (next_x, next_y)
-            }
-            Direction::Horizontal(false) => {
-                let next_x = curr_position.0 - 1;
-                let next_y = curr_position.1;
-                (next_x, next_y)
-            }
-            Direction::Vertical(true) => {
-                let next_x = curr_position.0;
-                let next_y = curr_position.1 + 1;
-                (next_x, next_y)
-            }
-            Direction::Vertical(false) => {
-                let next_x = curr_position.0;
-                let next_y = curr_position.1 - 1;
-                (next_x, next_y)
-            }
-            Direction::Diagonal_UP(true) => {
-                let next_x = curr_position.0 + 1;
-                let next_y = curr_position.1 + 1;
-                (next_x, next_y)
-            }
-            Direction::Diagonal_UP(false) => {
-                let next_x = curr_position.0 - 1;
-                let next_y = curr_position.1 - 1;
-                (next_x, next_y)
-            }
-            Direction::Diagonal_DOWN(true) => {
-                let next_x = curr_position.0 + 1;
-                let next_y = curr_position.1 - 1;
-                (next_x, next_y)
-            }
-            Direction::Diagonal_DOWN(false) => {
-                let next_x = curr_position.0 - 1;
-                let next_y = curr_position.1 + 1;
-                (next_x, next_y)
-            }
+            Direction::Horizontal(true) => next_position(&curr_position, |x| x + 1, |y| y),
+            Direction::Horizontal(false) => next_position(&curr_position, |x| x - 1, |y| y),
+            Direction::Vertical(true) => next_position(&curr_position, |x| x, |y| y + 1),
+            Direction::Vertical(false) => next_position(&curr_position, |x| x, |y| y - 1),
+            Direction::DiagonalUp(true) => next_position(&curr_position, |x| x - 1, |y| y - 1),
+            Direction::DiagonalUp(false) => next_position(&curr_position, |x| x + 1, |y| y + 1),
+            Direction::DiagonalDown(true) => next_position(&curr_position, |x| x + 1, |y| y - 1),
+            Direction::DiagonalDown(false) => next_position(&curr_position, |x| x - 1, |y| y + 1),
         }
     }
 }
@@ -205,6 +177,6 @@ mod tests {
     fn input_2() {
         let input = get_input(file!(), "input.txt");
         let parsed = parse_input(input);
-        assert_eq!(9, count_xmas_part2(&parsed));
+        assert_eq!(2034, count_xmas_part2(&parsed));
     }
 }

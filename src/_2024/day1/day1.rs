@@ -1,21 +1,21 @@
 use std::{collections::HashMap, ops::AddAssign};
 
-fn parse_input(input: String) -> (Vec<u32>, Vec<u32>) {
-    let total = input.lines().count();
-    let mut first_col: Vec<u32> = Vec::with_capacity(total);
-    let mut second_col: Vec<u32> = Vec::with_capacity(total);
-    input.split("\n").into_iter().for_each(|row| {
-        let mut iter = row.split("   ");
-        let number1: u32 = iter.next().unwrap().parse().unwrap();
-        let number2: u32 = iter.next().unwrap().parse().unwrap();
-        first_col.push(number1);
-        second_col.push(number2);
-    });
+use regex::Regex;
 
-    (first_col, second_col)
+fn parse_input(input: String) -> (Vec<u32>, Vec<u32>) {
+    Regex::new(r"(\d+)   (\d+)")
+        .unwrap()
+        .captures_iter(&input)
+        .map(|cap| {
+            (
+                cap[1].parse::<u32>().unwrap(),
+                cap[2].parse::<u32>().unwrap(),
+            )
+        })
+        .unzip()
 }
 
-fn calculate_avg_distance(mut input: (Vec<u32>, Vec<u32>)) -> u32 {
+fn calculate_avg_distance(input: (Vec<u32>, Vec<u32>)) -> u32 {
     let mut col1 = input.0;
     col1.sort();
     let mut col2 = input.1;
@@ -28,8 +28,8 @@ fn calculate_avg_distance(mut input: (Vec<u32>, Vec<u32>)) -> u32 {
     result
 }
 
-fn calculate_similarity(mut input: (Vec<u32>, Vec<u32>)) -> u32 {
-    let mut col1 = input.0;
+fn calculate_similarity(input: (Vec<u32>, Vec<u32>)) -> u32 {
+    let col1 = input.0;
     let mut col2 = input.1;
     col2.sort();
     let mut col2_map = HashMap::new();
