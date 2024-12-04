@@ -15,11 +15,12 @@ fn parse_input(input: String) -> Grid {
         .collect()
 }
 
-fn count_xmas(input: &Grid) -> u32 {
+// Part 1 is finding all XMAS occurences
+fn count_xmas_part1(input: &Grid) -> u32 {
     let mut count = 0;
     input.iter().for_each(|(x_y, c)| {
-        if c == &'X' {
-            count += nr_of_xmasses_from_x_position(input, x_y);
+        if c == &'X' && is_part_of_xmas(input, x_y) {
+            count += 1;
         }
     });
     count
@@ -115,6 +116,35 @@ fn is_xmas_in_direction(grid: &Grid, x_position: &Coords, direction: &Direction)
     true
 }
 
+// Part 2 is finding MAS in a cross
+// Solution: Find all A's and check if there is a M and S in the same direction
+fn count_xmas_part2(input: &Grid) -> u32 {
+    let mut count = 0;
+    input.iter().for_each(|(x_y, c)| {
+        if c == &'A' {
+            if is_part_of_xmas(input, x_y) {
+                count += 1;
+            }
+        }
+    });
+    count
+}
+
+fn is_part_of_xmas(grid: &Grid, a_coord: &Coords) -> bool {
+    has_char_on_same_side(grid, a_coord, 'M') && has_char_on_same_side(grid, a_coord, 'S')
+}
+
+fn has_char_on_same_side(grid: &Grid, a_coord: &Coords, char: char) -> bool {
+    let coord_left_up = (a_coord.0 - 1, a_coord.1 - 1);
+    let coord_right_up = (a_coord.0 + 1, a_coord.1 - 1);
+    let coord_right_down = (a_coord.0 + 1, a_coord.1 + 1);
+    let coord_left_down = (a_coord.0 - 1, a_coord.1 + 1);
+    (grid.get(&coord_left_up) == Some(&char) && grid.get(&coord_right_up) == Some(&char))
+        || (grid.get(&coord_right_up) == Some(&char) && grid.get(&coord_right_down) == Some(&char))
+        || (grid.get(&coord_right_down) == Some(&char) && grid.get(&coord_left_down) == Some(&char))
+        || (grid.get(&coord_left_down) == Some(&char) && grid.get(&coord_left_up) == Some(&char))
+}
+
 #[cfg(test)]
 mod tests {
     use crate::shared::file_parser::get_input;
@@ -125,27 +155,27 @@ mod tests {
     fn example_1_count_directions() {
         let input = get_input(file!(), "example_all_directions.txt");
         let parsed = parse_input(input);
-        assert_eq!(count_xmas(&parsed), 8);
+        assert_eq!(count_xmas_part1(&parsed), 8);
     }
 
     #[test]
     fn example_1_test_total() {
-        assert_eq!(count_xmas(&parse_input("XMAS".to_string())), 1);
-        assert_eq!(count_xmas(&parse_input("SAMX".to_string())), 1);
+        assert_eq!(count_xmas_part1(&parse_input("XMAS".to_string())), 1);
+        assert_eq!(count_xmas_part1(&parse_input("SAMX".to_string())), 1);
         assert_eq!(
-            count_xmas(&parse_input("...X\n...M\n...A\n...S".to_string())),
+            count_xmas_part1(&parse_input("...X\n...M\n...A\n...S".to_string())),
             1
         );
         assert_eq!(
-            count_xmas(&parse_input("...S\n...A\n...M\n...X".to_string())),
+            count_xmas_part1(&parse_input("...S\n...A\n...M\n...X".to_string())),
             1
         );
         assert_eq!(
-            count_xmas(&parse_input("X...\n.M..\n..A.\n...S".to_string())),
+            count_xmas_part1(&parse_input("X...\n.M..\n..A.\n...S".to_string())),
             1
         );
         assert_eq!(
-            count_xmas(&parse_input("S...\n.A..\n..M.\n...X".to_string())),
+            count_xmas_part1(&parse_input("S...\n.A..\n..M.\n...X".to_string())),
             1
         );
     }
@@ -154,23 +184,27 @@ mod tests {
     fn example_1() {
         let input = get_input(file!(), "example.txt");
         let parsed = parse_input(input);
-        assert_eq!(18, count_xmas(&parsed));
+        assert_eq!(18, count_xmas_part1(&parsed));
     }
 
     #[test]
     fn input_1() {
         let input = get_input(file!(), "input.txt");
         let parsed = parse_input(input);
-        assert_eq!(2662, count_xmas(&parsed));
+        assert_eq!(2662, count_xmas_part1(&parsed));
     }
 
     #[test]
     fn example_2() {
         let input = get_input(file!(), "example.txt");
+        let parsed = parse_input(input);
+        assert_eq!(9, count_xmas_part2(&parsed));
     }
 
     #[test]
     fn input_2() {
         let input = get_input(file!(), "input.txt");
+        let parsed = parse_input(input);
+        assert_eq!(9, count_xmas_part2(&parsed));
     }
 }
