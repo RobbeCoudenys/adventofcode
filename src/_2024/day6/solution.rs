@@ -7,6 +7,7 @@ use itertools::Itertools;
 
 type Coords = (i32, i32);
 
+#[derive(Eq, PartialEq, Hash, Clone, Copy)]
 enum Direction {
     North,
     East,
@@ -34,13 +35,19 @@ impl Direction {
     }
 }
 
+#[derive(Clone)]
 struct Guard {
     coords: Coords,
     direction: Direction,
+    // map of coords that have been visited by the guard in a certain direction
+    // important to detect infite loops
+    previous_positions: HashMap<Coords, HashSet<Direction>>,
 }
 
 impl Guard {
-    fn walk(&mut self, map: &HashMap<Coords, char>) {
+    // Walks the guard in a repetitive pattern until it goes outside the map
+    // or enters an infinite loop
+    fn walk(&mut self, map: &HashMap<Coords, char>) -> bool {
         let next_coords = self.direction.get_next_coords(self.coords);
         if let Some(next_char) = map.get(&next_coords) {
             if next_char == &'#' {
@@ -49,6 +56,16 @@ impl Guard {
             }
         }
         self.coords = next_coords;
+        if let Some(prev_directions) = self.previous_positions.get_mut(&self.coords) {
+            if prev_directions.contains(&self.direction) {
+                return true;
+            }
+            prev_directions.insert(self.direction);
+        } else {
+            self.previous_positions
+                .insert(self.coords, [self.direction].iter().cloned().collect());
+        }
+        return false;
     }
 }
 
@@ -74,18 +91,23 @@ fn find_guard(map: &HashMap<Coords, char>) -> Guard {
                     'v' => Direction::South,
                     _ => panic!("Invalid direction for char: {}", c),
                 },
+                previous_positions: HashMap::new(),
             };
         }
     }
     panic!("No guard found in map");
 }
 
-fn traverse_map(mut map: HashMap<Coords, char>, mut guard: Guard) -> HashMap<Coords, char> {
+fn traverse_map(mut map: HashMap<Coords, char>, mut guard: Guard) -> (HashMap<Coords, char>, bool) {
     if let Some(curr_pos) = map.get_mut(&guard.coords) {
         *curr_pos = 'X';
     }
+    let mut infinite_loop = false;
     loop {
-        guard.walk(&map);
+        infinite_loop = guard.walk(&map);
+        if infinite_loop {
+            break;
+        }
         if let Some(next_pos) = map.get_mut(&guard.coords) {
             if next_pos == &'.' {
                 *next_pos = 'X';
@@ -95,7 +117,17 @@ fn traverse_map(mut map: HashMap<Coords, char>, mut guard: Guard) -> HashMap<Coo
         }
         // print_map(&map);
     }
-    map
+    (map, infinite_loop)
+}
+
+fn is_infinit_loop_when_adding_obstacle_at(
+    mut guard: Guard,
+    mut map: HashMap<Coords, char>,
+    obstacle: Coords,
+) -> bool {
+    map.insert(obstacle, '#');
+    let guard = guard.clone();
+    traverse_map(map, guard).1
 }
 
 fn print_map(map: &HashMap<Coords, char>) {
@@ -113,6 +145,8 @@ fn print_map(map: &HashMap<Coords, char>) {
 
 #[cfg(test)]
 mod tests {
+    use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+
     use crate::shared::file_parser::get_input;
 
     use super::*;
@@ -122,7 +156,7 @@ mod tests {
         let input = get_input(file!(), "example.txt");
         let map = parse_input(input);
         let guard = find_guard(&map);
-        let map = traverse_map(map, guard);
+        let map = traverse_map(map, guard).0;
         assert_eq!(41, map.values().filter(|&c| *c == 'X').count());
     }
 
@@ -131,7 +165,7 @@ mod tests {
         let input = get_input(file!(), "input.txt");
         let map = parse_input(input);
         let guard = find_guard(&map);
-        let map = traverse_map(map, guard);
+        let map = traverse_map(map, guard).0;
         assert_eq!(5129, map.values().filter(|&c| *c == 'X').count());
     }
 
@@ -140,16 +174,42 @@ mod tests {
         let input = get_input(file!(), "example.txt");
         let map = parse_input(input);
         let guard = find_guard(&map);
-        let map_with_x = traverse_map(map.clone(), guard);
-        let guard_original_path = map_with_x
+        let map_with_x = traverse_map(map.clone(), guard.clone());
+        let result = map_with_x
+            .0
             .iter()
-            .filter(|(_, c)| **c == 'X')
+            .filter(|(coords, c)| *c == &'X' || *coords == &guard.coords)
             .map(|(coords, _)| *coords)
-            .collect::<Vec<Coords>>();
+            .map(|obstacle| {
+                if is_infinit_loop_when_adding_obstacle_at(guard.clone(), map.clone(), obstacle) {
+                    1
+                } else {
+                    0
+                }
+            })
+            .sum();
+        assert_eq!(6, result);
     }
 
     #[test]
     fn input_2() {
         let input = get_input(file!(), "input.txt");
+        let map = parse_input(input);
+        let guard = find_guard(&map);
+        let map_with_x = traverse_map(map.clone(), guard.clone());
+        let result = map_with_x
+            .0
+            .par_iter()
+            .filter(|(coords, c)| *c == &'X' || *coords == &guard.coords)
+            .map(|(coords, _)| *coords)
+            .map(|obstacle| {
+                if is_infinit_loop_when_adding_obstacle_at(guard.clone(), map.clone(), obstacle) {
+                    1
+                } else {
+                    0
+                }
+            })
+            .sum();
+        assert_eq!(1888, result);
     }
 }
