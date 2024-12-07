@@ -26,14 +26,9 @@ fn can_operations_combine_result(input: &(u128, Vec<u128>)) -> bool {
         return false;
     }
     for operation_mix in 0..2usize.pow((numbers.len() - 1) as u32) {
-        // println!();
-        // println!();
         let mut tmp_result = numbers[0];
-        // print!("{} ", tmp_result);
         for number_index in 1..numbers.len() {
             let operation = (operation_mix >> (number_index - 1)) & 1;
-            // print!("{} ", if operation == 0 { " + " } else { " * " });
-            // print!("{}", numbers[number_index]);
 
             match operation {
                 0 => tmp_result += numbers[number_index],
