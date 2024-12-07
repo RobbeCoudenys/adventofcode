@@ -19,6 +19,28 @@ enum Operation {
 }
 
 impl Operation {
+    fn is_top(&self) -> bool {
+        match self {
+            Operation::Add => false,
+            Operation::Multiply => true,
+            Operation::Concat => false,
+        }
+    }
+
+    fn next(&self, allow_concat: bool) -> Self {
+        match self {
+            Operation::Add => {
+                if allow_concat {
+                    Operation::Concat
+                } else {
+                    Operation::Multiply
+                }
+            }
+            Operation::Multiply => Operation::Add,
+            Operation::Concat => Operation::Multiply,
+        }
+    }
+
     fn apply(&self, a: u128, b: u128) -> u128 {
         match self {
             Operation::Add => a + b,
@@ -50,22 +72,8 @@ impl Operations {
         for index in 0..self.operations.len() {
             if index == 0 {
                 if let Some(first) = self.operations.get_mut(index) {
-                    match first {
-                        Operation::Add => {
-                            if self.allow_concat {
-                                *first = Operation::Concat;
-                            } else {
-                                *first = Operation::Multiply;
-                            }
-                        }
-                        Operation::Multiply => {
-                            *first = Operation::Add;
-                            switch_next_bit = true;
-                        }
-                        Operation::Concat => {
-                            *first = Operation::Multiply;
-                        }
-                    }
+                    switch_next_bit = first.is_top();
+                    *first = first.next(self.allow_concat);
                 } else {
                     unreachable!();
                 }
@@ -73,27 +81,8 @@ impl Operations {
             }
             if let Some(op) = self.operations.get_mut(index) {
                 if switch_next_bit {
-                    match op {
-                        Operation::Add => {
-                            if self.allow_concat {
-                                *op = Operation::Concat;
-                            } else {
-                                *op = Operation::Multiply;
-                            }
-                            switch_next_bit = false;
-                            continue;
-                        }
-                        Operation::Multiply => {
-                            *op = Operation::Add;
-                            switch_next_bit = true;
-                            continue;
-                        }
-                        Operation::Concat => {
-                            *op = Operation::Multiply;
-                            switch_next_bit = false;
-                            continue;
-                        }
-                    }
+                    switch_next_bit = op.is_top();
+                    *op = op.next(self.allow_concat);
                 }
             }
         }
@@ -131,32 +120,6 @@ fn can_operations_combine_result_old(input: &(u128, Vec<u128>)) -> bool {
         let mut tmp_result = numbers[0];
         for number_index in 1..numbers.len() {
             let operation = (operation_mix >> (number_index - 1)) & 0b1;
-
-            match operation {
-                0 => tmp_result += numbers[number_index],
-                1 => tmp_result *= numbers[number_index],
-                _ => unreachable!(),
-            }
-            if &tmp_result == result {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-fn part2(input: &(u128, Vec<u128>)) -> bool {
-    let (result, numbers) = input;
-    if numbers.iter().any(|n| n >= &&result) {
-        return false;
-    }
-    if &numbers.iter().filter(|nr| nr != &&1u128).sum::<u128>() > result {
-        return false;
-    }
-    for operation_mix in 0..2usize.pow((numbers.len() - 1) as u32) {
-        let mut tmp_result = numbers[0];
-        for number_index in 1..numbers.len() {
-            let operation = (operation_mix >> (number_index - 1)) & 1;
 
             match operation {
                 0 => tmp_result += numbers[number_index],
