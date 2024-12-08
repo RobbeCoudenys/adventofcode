@@ -95,11 +95,17 @@ fn can_operations_combine_result(input: &(u128, Vec<u128>), allow_concat: bool) 
     if numbers.iter().any(|n| n >= &&result) {
         return false;
     }
+    if numbers.iter().filter(|n| *n == &1u128).sum::<u128>() > *result {
+        return false;
+    }
     let mut operations = Operations::new(numbers.len() - 1, allow_concat);
     loop {
         let mut tmp_result = numbers[0];
         for (index, operation) in operations.operations.iter().enumerate() {
             tmp_result = operation.apply(tmp_result, numbers[index + 1]);
+            if tmp_result > *result {
+                break;
+            }
         }
         if &tmp_result == result {
             return true;
